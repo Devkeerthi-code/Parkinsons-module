@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parkinson's Disease Detection from Voice</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+
+        .instructions {
+            background: #f8f9ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 30px;
+            border-radius: 5px;
+        }
+
+        .instructions h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            color: #555;
+        }
+
+        .instructions li {
+            margin: 5px 0;
+        }
+
+        .recording-section {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .record-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .record-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .record-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .record-btn.recording {
+            background: #ef4444;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .status.info {
+            background: #e0e7ff;
+            color: #4338ca;
+        }
+
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .audio-visualizer {
+            width: 100%;
+            height: 100px;
+            background: #f8f9ff;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .result-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            color: white;
+            display: none;
+        }
+
+        .result-section h2 {
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .risk-score {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .risk-label {
+            font-size: 1.3em;
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .feature-card .label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .feature-card .value {
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .timer {
+            font-size: 2em;
+            color: #667eea;
+            text-align: center;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎤 Parkinson's Disease Detection</h1>
+        <p class="subtitle">AI-Powered Voice Analysis System</p>
+
+        <div class="instructions">
+            <h3>How to Use:</h3>
+            <ol>
+                <li>Click the "Start Recording" button below</li>
+                <li>Say "Aaaaaah" continuously for 3-5 seconds</li>
+                <li>Recording will stop automatically after 5 seconds</li>
+                <li>Wait for the AI to analyze your voice</li>
+                <li>View your results and risk assessment</li>
+            </ol>
+        </div>
+
+        <div class="recording-section">
+            <button id="recordBtn" class="record-btn">🎙️ Start Recording</button>
+            <div id="timer" class="timer hidden">00:00</div>
+            <canvas id="visualizer" class="audio-visualizer"></canvas>
+        </div>
+
+        <div id="status" class="status hidden"></div>
+        <div id="loader" class="loader hidden"></div>
+
+        <div id="resultSection" class="result-section">
+            <h2>Analysis Results</h2>
+            <div class="risk-score" id="riskScore">--</div>
+            <div class="risk-label" id="riskLabel">--</div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="label">Pitch Variation</div>
+                    <div class="value" id="pitchValue">--</div>
+                </div>
+                <div class="feature-card">
+                    <div class="label">Voice Stability</div>
+                    <div class="value" id="stabilityValue">--</div>
+                </div>
+                <div class="feature-card">
+                    <div class="label">Harmonic Quality</div>
+                    <div class="value" id="harmonicValue">--</div>
+                </div>
+                <div class="feature-card">
+                    <div class="label">Confidence</div>
+                    <div class="value" id="confidenceValue">--</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let recordingStartTime;
+        let timerInterval;
+        let audioContext;
+        let analyser;
+        let animationId;
+
+        // CRITICAL FIX: We will not use MediaRecorder's MIME type setting, 
+        // but instead decode the raw audio and encode it ourselves as WAV.
+        // We use 'audio/webm' as a reliable format for collecting raw data from MediaRecorder
+        const mimeType = 'audio/webm';
+
+
+        const recordBtn = document.getElementById('recordBtn');
+        const statusDiv = document.getElementById('status');
+        const resultSection = document.getElementById('resultSection');
+        const visualizer = document.getElementById('visualizer');
+        const timerDiv = document.getElementById('timer');
+        const loaderDiv = document.getElementById('loader');
+
+        recordBtn.addEventListener('click', toggleRecording);
+
+        async function toggleRecording() {
+            if (!isRecording) {
+                await startRecording();
+            } else {
+                stopRecording();
+            }
+        }
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                // Initialize AudioContext if not already done
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                source.connect(analyser);
+
+                mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType }); // Use reliable webm format
+
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: mimeType });
+                    // CRITICAL FIX: Manually decode and encode the audio to guarantee WAV format
+                    await clientSideWavEncode(audioBlob);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                recordingStartTime = Date.now();
+
+                recordBtn.textContent = '⏹️ Stop Recording';
+                recordBtn.classList.add('recording');
+                showStatus('Recording... Say "Aaaaaah" for 5 seconds.', 'info');
+
+                visualizer.style.display = 'block';
+                timerDiv.classList.remove('hidden');
+                resultSection.style.display = 'none';
+
+                startTimer();
+                visualizeAudio();
+
+                // Auto-stop after 5 seconds
+                setTimeout(() => {
+                    if (isRecording) {
+                        stopRecording();
+                    }
+                }, 5000);
+
+            } catch (error) {
+                showStatus('Error accessing microphone: ' + error.message, 'error');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+                recordBtn.textContent = '🎙️ Start Recording';
+                recordBtn.classList.remove('recording');
+
+                // Stop the tracks from streaming
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+
+                // Note: Don't close audioContext here, it's needed for clientSideWavEncode
+
+                cancelAnimationFrame(animationId);
+                clearInterval(timerInterval);
+                timerDiv.classList.add('hidden');
+                visualizer.style.display = 'none';
+
+                showStatus('Processing audio...', 'info');
+                loaderDiv.classList.remove('hidden');
+            }
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                const elapsed = Date.now() - recordingStartTime;
+                const seconds = Math.floor(elapsed / 1000);
+                const milliseconds = Math.floor((elapsed % 1000) / 10);
+                timerDiv.textContent = `${seconds.toString().padStart(2, '0')}:${milliseconds.toString().padStart(2, '0')}`;
+            }, 10);
+        }
+
+        function visualizeAudio() {
+            const canvas = visualizer;
+            const canvasCtx = canvas.getContext('2d');
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            function draw() {
+                animationId = requestAnimationFrame(draw);
+                analyser.getByteTimeDomainData(dataArray);
+
+                canvasCtx.fillStyle = '#f8f9ff';
+                canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+                canvasCtx.lineWidth = 2;
+                canvasCtx.strokeStyle = '#667eea';
+                canvasCtx.beginPath();
+
+                const sliceWidth = canvas.width / bufferLength;
+                let x = 0;
+
+                for (let i = 0; i < bufferLength; i++) {
+                    const v = dataArray[i] / 128.0;
+                    const y = v * canvas.height / 2;
+
+                    if (i === 0) {
+                        canvasCtx.moveTo(x, y);
+                    } else {
+                        canvasCtx.lineTo(x, y);
+                    }
+
+                    x += sliceWidth;
+                }
+
+                canvasCtx.lineTo(canvas.width, canvas.height / 2);
+                canvasCtx.stroke();
+            }
+
+            draw();
+        }
+
+        // ----------------------------------------------------------------------
+        // CRITICAL FIX LOGIC: Client-side WAV Encoding
+        // ----------------------------------------------------------------------
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        function encodeWav(samples, sampleRate) {
+            const buffer = new ArrayBuffer(44 + samples.length * 2);
+            const view = new DataView(buffer);
+
+            // RIFF chunk descriptor
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + samples.length * 2, true);
+            writeString(view, 8, 'WAVE');
+
+            // fmt sub-chunk
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true); // Sub-chunk size
+            view.setUint16(20, 1, true); // Audio format (1 for PCM)
+            view.setUint16(22, 1, true); // Channels (1 for mono)
+            view.setUint32(24, sampleRate, true); // Sample rate
+            view.setUint32(28, sampleRate * 2, true); // Byte rate (SampleRate * Channels * BitsPerSample/8)
+            view.setUint16(32, 2, true); // Block align (Channels * BitsPerSample/8)
+            view.setUint16(34, 16, true); // Bits per sample (16 bit)
+
+            // data sub-chunk
+            writeString(view, 36, 'data');
+            view.setUint32(40, samples.length * 2, true); // Data size
+
+            // write 16-bit PCM samples
+            for (let i = 0; i < samples.length; i++) {
+                const sample = samples[i];
+                // Scale from float (-1 to 1) to Int16 (-32768 to 32767)
+                const intSample = Math.max(-1, Math.min(1, sample)) * 0x7FFF;
+                view.setInt16(44 + i * 2, intSample, true);
+            }
+
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        async function clientSideWavEncode(audioBlob) {
+            showStatus('Decoding and re-encoding audio...', 'info');
+            try {
+                // 1. Decode the recorded audio data using Web Audio API
+                const arrayBuffer = await audioBlob.arrayBuffer();
+                // Ensure audioContext is active (it should be, but check to be safe)
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+                // 2. Extract raw samples (assuming mono channel 0)
+                const rawSamples = audioBuffer.getChannelData(0);
+                const sampleRate = audioBuffer.sampleRate;
+
+                // 3. Manually encode the raw samples into a guaranteed PCM WAV Blob
+                const wavBlob = encodeWav(rawSamples, sampleRate);
+
+                // 4. Send the clean WAV blob to the backend
+                await processAudio(wavBlob);
+
+            } catch (error) {
+                showStatus('Error during client-side audio encoding: ' + error.message, 'error');
+                loaderDiv.classList.add('hidden');
+            } finally {
+                // Close the context once processing is complete
+                if (audioContext && audioContext.state !== 'closed') {
+                    audioContext.close();
+                }
+            }
+        }
+
+
+        async function processAudio(wavBlob) {
+            try {
+                showStatus('Uploading and analyzing your voice...', 'info');
+                loaderDiv.classList.remove('hidden');
+
+                // Send clean WAV audio to your Flask backend
+                const formData = new FormData();
+                // We ensure the filename has the correct .wav extension
+                formData.append("audio", wavBlob, "recording.wav");
+
+                const response = await fetch("http://127.0.0.1:5000/predict", {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorJson = await response.json();
+                    // Display the error from the backend if available
+                    throw new Error(errorJson.error || "Server error: " + response.statusText);
+                }
+
+                const data = await response.json();
+
+                // Display real backend prediction
+                displayResults({
+                    label: data.label,
+                    risk_score: data.risk_score,
+                    confidence: data.confidence,
+                    features: {
+                        MDVP_Fo: data.features.pitch_mean,
+                        MDVP_Jitter: data.features.pitch_variation,
+                        HNR: data.features.harmonics_noise_ratio
+                    }
+                });
+
+            } catch (error) {
+                showStatus("Error communicating with backend: An error occurred during audio analysis. Check server logs for details.", "error");
+                console.error("Frontend Fetch Error:", error.message);
+            } finally {
+                loaderDiv.classList.add("hidden");
+            }
+        }
+
+
+        function displayResults(prediction) {
+            loaderDiv.classList.add('hidden');
+
+            const riskScore = prediction.risk_score;
+            const label = prediction.label;
+
+            document.getElementById('riskScore').textContent = `${riskScore.toFixed(1)}%`;
+
+            if (label === 1) {
+                document.getElementById('riskLabel').textContent = '⚠️ Elevated Risk Detected';
+                document.getElementById('riskLabel').style.background = 'rgba(239, 68, 68, 0.3)';
+            } else {
+                document.getElementById('riskLabel').textContent = '✓ Low Risk Detected';
+                document.getElementById('riskLabel').style.background = 'rgba(34, 197, 94, 0.3)';
+            }
+
+            // Using MDVP_Jitter as a percentage for "Voice Stability" (100 - Jitter%)
+            document.getElementById('pitchValue').textContent = prediction.features.MDVP_Fo.toFixed(1) + ' Hz';
+            // Note: The original dataset uses MDVP:Jitter(%) as a percentage. 
+            // 100 - Jitter_score gives a stability score.
+            document.getElementById('stabilityValue').textContent = (100 - prediction.features.MDVP_Jitter).toFixed(1) + '%';
+            document.getElementById('harmonicValue').textContent = prediction.features.HNR.toFixed(1) + ' dB';
+            document.getElementById('confidenceValue').textContent = prediction.confidence.toFixed(1) + '%';
+
+            resultSection.style.display = 'block';
+
+            showStatus(
+                label === 1
+                    ? 'Analysis complete. Please consult a healthcare professional for proper diagnosis.'
+                    : 'Analysis complete. No significant risk indicators detected.',
+                'success'
+            );
+        }
+
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.classList.remove('hidden');
+        }
+    </script>
+</body>
+
+</html>

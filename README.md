@@ -78,3 +78,9 @@ The model uses a Voting Classifier (Ensemble) approach, combining the predictive
 
 
 This high performance demonstrates robustness and strong generalization capability on the provided dataset. The [train_model.py](./train_model.py) script also includes a 5-fold cross-validation, achieving a mean CV accuracy of ~92%.
+
+## Primary Developer Contribution
+The complete Artificial Intelligence component for the voice-based Parkinson's detection tool was developed solely by:
+* **Khushi N** (https://github.com/khushi-n-murthy)
+
+The repository was hosted by the Dev Keerthi P, to meet the hackathon submission requirement.
